@@ -16,4 +16,4 @@ and
 
 Please note that running time can be significantly reduced by changing/developing a new algorithm.
 
-FOr any questions, you can contact the corresponding author at shuoliu.academic@gmail.com
+For any questions, you can contact the corresponding author at shuoliu.academic@gmail.com
