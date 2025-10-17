@@ -342,61 +342,6 @@ UTrans=function(Data,transfer.id=NULL,family = c("gaussian", "binomial", "poisso
 
 
 
-#################
-
-block.fit=function(D.training,type=c("lasso","SCAD"),family){
-  target=D.training$target
-  source=D.training$source
-  np=ncol(target$x)
-  
-  transfer.source.id=1:length(source)
-  kk=length(transfer.source.id)
-  
-  X <- as.matrix(foreach(j = transfer.source.id, .combine = "rbind") %do% {
-    source[[j]]$x})
-  X=rbind(X,target$x)
-  Y <- foreach(j = transfer.source.id, .combine = "c") %do% {
-    source[[j]]$y}
-  Y=c(Y,target$y)
-  
-  nk=rep(NA,kk)
-  for (i in 1:kk){
-    ind=transfer.source.id[i]
-    nk[i]=length(source[[ind]]$y)
-  }
-  XX2=propComb2(X,kk,nk)
-  
-  int=cv.ncvreg(X,Y,penalty="lasso",family=family,cluster=cl)
-  #cv.glmnet(x = X, y = Y, intercept=FALSE,family = family,parallel = TRUE)
-  b00=coef(int)[-1]
-  w = rep(NA,np)
-  delta=matrix(NA,np,kk)
-  #delta2=delta
-  
-  for (k in 1:kk){ #update delta_k
-    offset <- as.numeric(as.matrix(source[[k]]$x) %*% b00)
-    int_k=cv.glmnet(x = source[[k]]$x, y = source[[k]]$y, offset = offset, intercept=FALSE,family = family,parallel = TRUE)
-    b.temp=coef(int_k)[-1]
-    delta[,k]=b.temp
-    # if (type=="SCAD"){
-    #   for(j in 1:np){
-    #     w[j] = deSCAD(b.temp[j],int_k$lambda.min)
-    #   }
-    #   delta2[,k]=coef(cv.glmnet(x = source[[k]]$x, y = source[[k]]$y, offset = offset, intercept=FALSE,family = family,penalty.factor=w))[-1]
-    # } 
-  } #update delta_k
-  int.new=cv.glmnet(x = X, y = Y, offset = XX2[,1:(ncol(XX2)-np)]%*%c(delta), intercept=FALSE,family = family) #update b0
-  b0.lasso=coef(int.new)[-1]
-  b0.scad=NULL
-  if (type=="SCAD"){
-    for(j in 1:np){
-      w[j] = deSCAD(coef(int.new)[j+1],int.new$lambda.min)
-    }
-    b0.scad=coef(cv.glmnet(x = X, y = Y, offset=XX2[,1:(ncol(XX2)-np)]%*%c(delta), intercept=FALSE,family = family,penalty.factor=w))[-1]
-  } 
-  
-  return(list(b1=b0.lasso,b2=b0.scad))
-}
 
 
 
